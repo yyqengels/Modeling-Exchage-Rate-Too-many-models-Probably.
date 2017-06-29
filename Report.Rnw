@@ -1,0 +1,506 @@
+\documentclass[a4paper]{article}
+
+\usepackage[english]{babel}
+\usepackage[utf8x]{inputenc}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage[colorinlistoftodos]{todonotes}
+\usepackage{calrsfs}
+\usepackage{mathrsfs}
+\usepackage{amsmath}  
+\usepackage{amssymb}
+\usepackage{wasysym}
+\usepackage{amsfonts}
+% or
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{caption}
+\usepackage[top=1in, bottom=0.5in, left=1in, right=1in]{geometry}
+\title{STAT 621\\Modeling Exchange Rate-Too many models? Probably.}
+\author{Ben Hulet, Yuqiu Yang, Zhenshan Jin}
+\begin{document}
+\date{}
+\maketitle
+\newcommand{\La}{\mathcal{L}}
+\newcommand{\Lb}{\pazocal{L}}
+\section*{Introduction}
+
+In this report we will be comparing the results from fitting two GARCH volatility models, two stochastic volatility models, and one EGARCH model on two difference exchange rate pairs.  The exchange rate pairs are the price of 1 Great British Pound (GBP) in dollars and the price of one Euro (EUR) in dollars. These series are daily exchange rates from January 2005 to March 2016. We will be comparing the out of sample one step ahead prediction performance of these models on the final three months of the series.  
+
+
+\section*{Modeling the FX pairs}
+Before fitting these models to our pairs, we calculated the log return of each series, and split each series into two parts: one from 2005-01-01 to 2016-01-01 and the other from 2016-01-01 to 2016-03-30. And judging from the corresponding Acf and Pacf plots and the Dickey Fuller Test for unit roots, we concluded that our series are random walk processes. In so doing, we can fit these volatility models directly to the log return series.  
+\subsection*{GARCH}
+\begin{align*}
+a_t&=\sigma_t\epsilon_t\\
+\sigma_t^2&=\alpha_0+\sum_{i=1}^s\alpha_ia_{t-i}+\sum_{j=1}^m\beta_j\sigma_{t-j}^2\\
+\end{align*}
+Empirical studies have shown that return series are often uncorrelated but dependent. GARCH models try to model non-constant variances conditional on the past, but use constant unconditional variances. We fit GARCH(1,1) models to our exchange rate pairs with both normal distributed errors and t-distributed errors. In order to evaluate the forecasting capability, we calculated 50\%, 80\% and 90\% predictive intervals and checked their actual coverage rates.\\
+Below the corresponding plots are shown:\\
+\begin{figure}[!h]
+\includegraphics[width=1\textwidth,height=5cm]{GBPGARCH.JPG}
+\caption{USD/GBP}
+\end{figure}
+\clearpage
+\begin{table}[!h]
+\begin{minipage}{.4\textwidth}
+\centering
+<<echo=FALSE,results='asis',warning=FALSE,message=FALSE>>=
+library("xtable")
+GBPGARCHCov<-data.frame(matrix(c("84.37%","73.43%","50.00%"),ncol=3))
+colnames(GBPGARCHCov)<-c("90%","80%","50%")
+rownames(GBPGARCHCov)<-"Coverage Rate"
+print(xtable(GBPGARCHCov),
+  floating=FALSE,
+  hline.after=NULL,
+  add.to.row=list(pos=list(-1,0, nrow(GBPGARCHCov)),
+  command=c('\\toprule\n','\\midrule\n','\\bottomrule\n')))
+@
+\captionof{table}{GBP N-Distributed Errors}
+\end{minipage}
+\begin{minipage}{.7\textwidth}
+\centering
+<<echo=FALSE,results='asis',warning=FALSE,message=FALSE>>=
+TGBPGARCHCov<-data.frame(matrix(c("87.50%","79.70%","51.60%"),ncol=3))
+colnames(TGBPGARCHCov)<-c("90%","80%","50%")
+rownames(TGBPGARCHCov)<-"Coverage Rate"
+print(xtable(TGBPGARCHCov),
+  floating=FALSE,
+  hline.after=NULL,
+  add.to.row=list(pos=list(-1,0, nrow(TGBPGARCHCov)),
+  command=c('\\toprule\n','\\midrule\n','\\bottomrule\n')))
+@
+\captionof{table}{GBP T-distributed  Errors}
+\end{minipage}
+\end{table}\\
+\begin{figure}[!h]
+\includegraphics[width=1\textwidth,height=5cm]{EURGARCH.JPG}
+\caption{USD/EUR}
+\end{figure}
+\begin{table}[!h]
+\begin{minipage}{.4\textwidth}
+\centering
+<<echo=FALSE,results='asis',warning=FALSE,message=FALSE>>=
+library("xtable")
+EURGARCHCov<-data.frame(matrix(c("90.60%","82.80%","56.20%"),ncol=3))
+colnames(EURGARCHCov)<-c("90%","80%","50%")
+rownames(EURGARCHCov)<-"Coverage Rate"
+print(xtable(EURGARCHCov),
+  floating=FALSE,
+  hline.after=NULL,
+  add.to.row=list(pos=list(-1,0, nrow(EURGARCHCov)),
+  command=c('\\toprule\n','\\midrule\n','\\bottomrule\n')))
+@
+\captionof{table}{EUR N-Distributed Errors}
+\end{minipage}
+\begin{minipage}{.7\textwidth}
+\centering
+<<echo=FALSE,results='asis',warning=FALSE,message=FALSE>>=
+TEURGARCHCov<-data.frame(matrix(c("93.80%","84.40%","56.20%"),ncol=3))
+colnames(TEURGARCHCov)<-c("90%","80%","50%")
+rownames(TEURGARCHCov)<-"Coverage Rate"
+print(xtable(TEURGARCHCov),
+  floating=FALSE,
+  hline.after=NULL,
+  add.to.row=list(pos=list(-1,0, nrow(TEURGARCHCov)),
+  command=c('\\toprule\n','\\midrule\n','\\bottomrule\n')))
+@
+\captionof{table}{EUR T-distributed  Errors}
+\end{minipage}
+\end{table}\\
+\noindent The criterion that we used to determine which model is better is that the closer the coverage rate to the prediction interval, the better the model is. GARCH(1,1) model with t-distributed error is a better choice in the USD-GBP exchange rate.  GARCH(1,1) with normally distributed error is a better choice in the USD-EUR exchange rate.
+\subsection*{EGARCH}
+\begin{align*}
+a_t&=\sigma_t\epsilon_t\\
+ln(\sigma_t^2)&=\alpha_0+\sum_{i=1}^s\alpha_i\dfrac{|a_{t-i}|+\gamma_ia_{t-i}}{\sigma_{t-i}}+\sum_{j=1}^m\beta_jln(\sigma_{t-j}^2)
+\end{align*}
+The EGARCH model was developed by Nelson in 1991 and is often used in financial markets where the volatility corresponding to positive returns is generally smaller than the volatility corresponding to negative returns. EGARCH allows for asymmetries in the relationship between return and volatility which contributes to it's effectiveness in modeling exchange rates. Additionally, EGARCH does not impose the assumption of positive coefficients which allows random oscillatory behavior in the sigma process. For this project we varied the order of the model and the distribution of the errors. For the order of the model  we found that it had a negligible effect on the one step ahead predictive performance and for the distribution of errors, normal distribution seems to have better performance. So in the following part we only show the results from EGARCH(1,1) with normally distributed errors.
+
+\begin{table}[!h]
+\begin{minipage}{.4\textwidth}
+\centering
+<<echo=FALSE,results='asis',warning=FALSE,message=FALSE>>=
+library("xtable")
+GBPEGARCHCov<-data.frame(matrix(c("87.50%","76.60%","53.10%"),ncol=3))
+colnames(GBPEGARCHCov)<-c("90%","80%","50%")
+rownames(GBPEGARCHCov)<-"Coverage Rate"
+print(xtable(GBPEGARCHCov),
+  floating=FALSE,
+  hline.after=NULL,
+  add.to.row=list(pos=list(-1,0, nrow(GBPEGARCHCov)),
+  command=c('\\toprule\n','\\midrule\n','\\bottomrule\n')))
+@
+\captionof{table}{USD/GBP}
+\end{minipage}
+\begin{minipage}{.7\textwidth}
+\centering
+<<echo=FALSE,results='asis',warning=FALSE,message=FALSE>>=
+EUREGARCHCov<-data.frame(matrix(c("90.60%","81.20%","56.20%"),ncol=3))
+colnames(EUREGARCHCov)<-c("90%","80%","50%")
+rownames(EUREGARCHCov)<-"Coverage Rate"
+print(xtable(EUREGARCHCov),
+  floating=FALSE,
+  hline.after=NULL,
+  add.to.row=list(pos=list(-1,0, nrow(EUREGARCHCov)),
+  command=c('\\toprule\n','\\midrule\n','\\bottomrule\n')))
+@
+\captionof{table}{USD/EUR}
+\end{minipage}
+\end{table}
+\noindent Comparing the coverage rate from GARCH(1,1) model, we can found that EGARCH(1,1) model with normally distributed errors has the best performance for both exchange rates time series.
+After fitting the model, we also checked the leverage effect for each time series where the standardized shock magnitude is equal to 2. Shown here:
+\begin{align*}
+\dfrac{\sigma_t^2(\epsilon_{t-1} = -2)}{\sigma_t^2(\epsilon_{t-1} = 2)}
+\end{align*}
+
+\begin{table}[!h]
+\centering
+<<echo=FALSE,results='asis',warning=FALSE,message=FALSE>>==
+EUREGARCH_lev<-data.frame(matrix(c("0.836","0.826"),ncol=2))
+colnames(EUREGARCH_lev)<-c("USD-GBP","USD-EUR"); rownames(EUREGARCH_lev)<-"Leverage Effect"
+print(xtable(EUREGARCH_lev),
+  floating=FALSE,
+  hline.after=NULL,
+  add.to.row=list(pos=list(-1,0, nrow(EUREGARCHCov)),
+  command=c('\\toprule\n','\\midrule\n','\\bottomrule\n')))
+@
+\captionof{table}{Leverage Effect}
+\end{table}
+\noindent As we can see from the table, there is an obvious up leverage effect. Take USD-GBP exchange rate for example, the impact of a negative shock of size 2 standard deviations is about 16.4\% lower than that of a positive shock of the same size.
+
+\subsection*{Stochastic Volatility Model}
+\begin{align*}
+a_t&=\sigma_t \epsilon_t\\
+(1-\alpha_1& B-\cdots -\alpha_m B^m)ln(\sigma_t^2)=\alpha_0+\nu_t
+\end{align*}
+Stochastic volatility models are those in which the variance of a stochastic process is itself randomly distributed. At time t, the volatility is NOT pre-determined (deterministic) given previous values.  This allows these models to be more flexible than GARCH models by allowing the volatility to be a random process.
+\begin{table}[!h]
+\begin{minipage}{.4\textwidth}
+\centering
+<<echo=FALSE,results='asis',warning=FALSE,message=FALSE>>=
+library("xtable")
+GBPSVCov<-data.frame(matrix(c("85.93%","75.00%","45.30%"),ncol=3))
+colnames(GBPSVCov)<-c("90%","80%","50%")
+rownames(GBPSVCov)<-"Coverage Rate"
+print(xtable(GBPSVCov),
+  floating=FALSE,
+  hline.after=NULL,
+  add.to.row=list(pos=list(-1,0, nrow(GBPSVCov)),
+  command=c('\\toprule\n','\\midrule\n','\\bottomrule\n')))
+@
+\captionof{table}{GBP N-Distributed Errors}
+\end{minipage}
+\begin{minipage}{.7\textwidth}
+\centering
+<<echo=FALSE,results='asis',warning=FALSE,message=FALSE>>=
+TGBPSVCov<-data.frame(matrix(c("79.69%","65.63%","40.63%"),ncol=3))
+colnames(TGBPSVCov)<-c("90%","80%","50%")
+rownames(TGBPSVCov)<-"Coverage Rate"
+print(xtable(TGBPSVCov),
+  floating=FALSE,
+  hline.after=NULL,
+  add.to.row=list(pos=list(-1,0, nrow(TGBPSVCov)),
+  command=c('\\toprule\n','\\midrule\n','\\bottomrule\n')))
+@
+\captionof{table}{GBP T-distributed  Errors}
+\end{minipage}
+\end{table}
+
+\begin{table}[!h]
+\begin{minipage}{.4\textwidth}
+\centering
+<<echo=FALSE,results='asis',warning=FALSE,message=FALSE>>=
+library("xtable")
+EURSVCov<-data.frame(matrix(c("90.63%","76.56%","56.25%"),ncol=3))
+colnames(EURSVCov)<-c("90%","80%","50%")
+rownames(EURSVCov)<-"Coverage Rate"
+print(xtable(EURSVCov),
+  floating=FALSE,
+  hline.after=NULL,
+  add.to.row=list(pos=list(-1,0, nrow(EURSVCov)),
+  command=c('\\toprule\n','\\midrule\n','\\bottomrule\n')))
+@
+\captionof{table}{EUR N-Distributed Errors}
+\end{minipage}
+\begin{minipage}{.7\textwidth}
+\centering
+<<echo=FALSE,results='asis',warning=FALSE,message=FALSE>>=
+TEURSVCov<-data.frame(matrix(c("87.50%","75.00%","53.13%"),ncol=3))
+colnames(TEURSVCov)<-c("90%","80%","50%")
+rownames(TEURSVCov)<-"Coverage Rate"
+print(xtable(TEURSVCov),
+  floating=FALSE,
+  hline.after=NULL,
+  add.to.row=list(pos=list(-1,0, nrow(TEURSVCov)),
+  command=c('\\toprule\n','\\midrule\n','\\bottomrule\n')))
+@
+\captionof{table}{EUR T-distributed  Errors}
+\end{minipage}
+\end{table}\\
+\noindent We can see that the stochastic volatility models performed moderately well with Normally distributed errors but the performance was noticeably worse with T-Distributed errors. The effect of the error distribution is the opposite of what was observed in the GARCH family. We also see that the stochastic models were similarly ineffective at modeling the GBP exchange rate. 
+
+\subsection*{Prior distribution sensitivity checks}
+For all stochastic volatility models used in this project (those with normally distributed errors and T-distributed errors), we performed prior distribution sensitivity checks.  To do this we ran 11 different models where the prior distributions for each of the parameters was systematically varied.  Below is the table corresponding to the prior distribution sensitivity checks where the first four columns contain the parameters we used while calling the function svsample.
+\begin{table}[h!]
+\centering
+<<echo=FALSE,results='asis',warning=FALSE,message=FALSE>>=
+rm(list=ls())
+setwd('D:\\RICE UNIVERSITY\\621\\ASSIGNMENT\\6')
+load('r.RData')
+load('r1.RData')
+load('r2.RData')
+GBPN<-data.frame(matrix(nrow=11,ncol=10))
+colnames(GBPN)<-c("priormu","priorphi","priorsig","priornu","90%*","80%*","50%*","90%**","80%**","50%**")
+GBPN[1,5:7]<-r[[1]]$CovRate
+GBPN[1,1:4]<-c("(0,100)","(5,1.5)","1","NA")
+GBPN[2,5:7]<-r[[2]]$CovRate
+GBPN[2,1:4]<-c("(-10,1)","(20,1.5)","0.1","NA")
+GBPN[3,5:7]<-r1[[1]]$CovRate
+GBPN[3,1:4]<-c("(-10,1)","(5,1.5)","1","NA")
+GBPN[4,5:7]<-r1[[2]]$CovRate
+GBPN[4,1:4]<-c("(0,100)","(20,1.5)","1","NA")
+GBPN[5,5:7]<-r1[[3]]$CovRate
+GBPN[5,1:4]<-c("(0,100)","(5,1.5)","0.1","NA")
+GBPN[6,5:7]<-r[[3]]$CovRate
+GBPN[6,1:4]<-c("(0,100)","(5,1.5)","1","(2,100)")
+GBPN[7,5:7]<-r[[4]]$CovRate
+GBPN[7,1:4]<-c("(-10,1)","(20,1.5)","0.1","(5,20)")
+GBPN[8,5:7]<-r2[[1]]$CovRate
+GBPN[8,1:4]<-c("(-10,1)","(5,1.5)","1","(2,100)")
+GBPN[9,5:7]<-r2[[2]]$CovRate
+GBPN[9,1:4]<-c("(0,100)","(20,1.5)","1","(2,100)")
+GBPN[10,5:7]<-r2[[3]]$CovRate
+GBPN[10,1:4]<-c("(0,100)","(5,1.5)","0.1","(2,100)")
+GBPN[11,5:7]<-r2[[4]]$CovRate
+GBPN[11,1:4]<-c("(0,100)","(5,1.5)","1","(5,20)")
+rm(r)
+rm(r1)
+rm(r2)
+load('r3.RData')
+load('r4.RData')
+load('r5.RData')
+GBPN[1,8:10]<-r3[[1]]$CovRate
+GBPN[2,8:10]<-r3[[2]]$CovRate
+GBPN[3,8:10]<-r4[[1]]$CovRate
+GBPN[4,8:10]<-r4[[2]]$CovRate
+GBPN[5,8:10]<-r4[[3]]$CovRate
+GBPN[6,8:10]<-r3[[3]]$CovRate
+GBPN[7,8:10]<-r3[[4]]$CovRate
+GBPN[8,8:10]<-r5[[1]]$CovRate
+GBPN[9,8:10]<-r5[[2]]$CovRate
+GBPN[10,8:10]<-r5[[3]]$CovRate
+GBPN[11,8:10]<-r5[[4]]$CovRate
+rm(r3)
+rm(r4)
+rm(r5)
+print(xtable(GBPN),
+  floating=FALSE,
+  hline.after=NULL,
+  add.to.row=list(pos=list(-1,0, nrow(GBPN)),
+  command=c('\\toprule\n','\\midrule\n','\\bottomrule\n')),include.rownames=FALSE)
+@
+\captionof{table}{Sensitivity Checks Table $\ast=USD/GBP$ $\ast\ast=USD/EUR$}
+\end{table}
+\pagebreak\\
+\noindent Looking at this table, we find that the effect of changing the prior is negligible in terms of the prediction interval and recovery rate.
+
+
+\section*{Conclusion}
+
+We came to several conclusions while working on this project. First, that stochastic volatility models are extremely slow to implement and they did not perform better than standard GARCH(1,1) models. Additionally, varying the prior distribution did not effect the model's performance. This may be due to the relatively large sample size used in this project, where the length of the entire series contained 2,929 observations. \\
+
+\noindent In comparing T-Distributed errors versus normally distributed errors, we found that T-Distributed errors provided a wider predictive interval than normally distributed errors for the GARCH family, but the effect is reversed for Stochastic volatility models. At this time, we do not have an understanding for this observation. \\
+
+\noindent Generally the GARCH Family performed well in recovering the mean zero series for 1 step ahead rolling forecasts.  Additionally, the models were easy to implement and were computationally time efficient. By implementing EGARCH models, we did improve the recovery rate over the standard GARCH(1,1). Because EGARCH models are similarly computationally inexpensive, we find they are the best choice in our comparison of forecasting coverage rates. We also found that for these series, changing the order of the EGARCH model had no effect on the model performance. \\
+
+\noindent Because all models performed worse when predicting the GBP exchange rate series we can conclude that when the series expresses a higher degree of volatility, we should choose different methods than those explored in this project. \\
+
+\begin{thebibliography}{18}
+\raggedright
+\bibitem{Textbook}
+Ruey S.Tsay
+\textit{Analysis of Financial Time Series, Third Edition}
+Wiley. 2010.
+
+\bibitem{SV manual}
+Gregor Kastner
+\textit{Dealing with Stochastic Volatility in Time Series Using the R Package stochvol}
+Journal of Statistical Software. 2016
+
+\bibitem{TSV manual}
+Gregor Kastner
+\textit{Heavy-Tailed Innovations in the R Package stochvol}
+2015
+
+\bibitem{Answer}
+Torben G. Andersen and Tim Bollerslev
+\textit{Answering the skeptics: Yes, standard volatility models do provide accurate forecasts}
+International Economic Review. 1998.
+
+\bibitem{rugarch manual}
+Alexios Ghalanos
+\textit{Introduction to the rugarch package}
+2015.
+
+\bibitem{ARCH}
+Robert F. Engle
+\textit{Autoregressive Conditional Heteroscedasticity with Estimates of the Variance of United Kingdom Inflation}
+Econometrica, Vol. 50, No. 4. 1982
+
+\bibitem{GARCH}
+Tim Bollerslev
+\textit{Generalized Autoregressive Conditional Heteroskedasticity}
+Journal of Econometrics. 1986
+
+\bibitem{EGARCH}
+Daniel B. Nelson
+\textit{Conditional Heteroskedasticity in Asset Returns: A New Approach}
+Economitrica, Vol. 59, No. 2. 1991
+
+\bibitem{SV}
+Angelo Melino and Stuart Turnbull
+\textit{Pricing Foreign Currency Option with Stochastic Volatility}
+Journal of Econometrics. 1990
+
+\bibitem{FinTS}
+Spencer Graves
+\textit{Package `FinTS'}
+Methods and tools for analyzing time sires.
+2009. https://cran.r-project.org/web/packages/FinTS/FinTS.pdf
+
+\bibitem{tseries}
+Adrian Trapletti et al.
+\textit{Package `tseries'}
+Time series analysis and computational  
+finance. 2015. https://cran.r-project.org/web/packages/tseries/tseries.pdf
+
+\bibitem{rugarch}
+Alexios Ghalanos
+\textit{Package `rugarch'}
+Univariate GARCH Models.
+2015. https://cran.r-project.org/web/packages/rugarch/rugarch.pdf
+
+\bibitem{stochvol}
+Gregor Kastner
+\textit{Package `stochvol'}
+Efficient Bayesian Inference for Stochastic Volatility Models.
+2016. https://cran.r-project.org/web/packages/stochvol/stochvol.pdf
+
+\bibitem{lubridate}
+Vitalie Spinu
+\textit{Package `lubridate'}
+Make Dealing with Dates a Little Easier.
+2016. https://cran.r-project.org/web/packages/lubridate/lubridate.pdf
+
+\bibitem{parallel}
+R-core
+\textit{Package `parallel'}
+Coarse-grained Parallelization.
+2015. https://stat.ethz.ch/R-manual/R-devel/library/parallel/doc/parallel.pdf
+
+\bibitem{forecast}
+Rob J Hyndman et al.
+\textit{Package `forecast'}
+Methods and tools for displaying and analysing
+univariate time series forecasts  
+2015. https://cran.r-project.org/web/packages/forecast/forecast.pdf
+
+\bibitem{doParallel}
+Rich Calaway, et al.
+\textit{Package `doParallel'}
+Provides a parallel backend for the \%dopar\% function using the parallel package.
+2015. https://cran.r-project.org/web/packages/doParallel/doParallel.pdf
+
+\bibitem{foreach}
+Rich Calaway, et al.
+\textit{Package `foreach'}
+Provides Foreach Looping Construct for R.
+2015. https://cran.r-project.org/web/packages/foreach/foreach.pdf
+
+
+
+\end{thebibliography}
+\section*{Appendix}
+<<eval = FALSE>>=
+## check the First series
+Box.test(DFirst[,2], type="Ljung-Box") ## reject null of independence
+kpss.test(DFirst[,2]) ## fail to reject null of independence
+Box.test(DFirst[,2]^2,lag=9,type="Ljung-Box") ## significant ARCH effects
+adf.test(DFirst[,2]) #Augmented Dickey-Fuller reject null of non stationarity,
+## Fitting Models
+################################################################################
+## (Non-Bayesian) GARCH(1,1)
+sgarch_model <-ugarchspec(variance.model=list(model="sGARCH",garchOrder=c(1,1)),
+                          distribution.model="norm",
+                          mean.model=list(armaOrder=c(0,0),include.mean=TRUE))
+sgarch_fit <- ugarchfit(sgarch_model,DFirst)
+mod_sgarch <- ugarchroll(sgarch_model, data = logFX, n.ahead = 1,refit.every = 1,
+                        n.start = 2865, refit.window = "recursive",
+                        solver = "hybrid", fit.control = list(),
+                        calculate.VaR = TRUE, VaR.alpha = c(0.01, 0.025, 0.05),
+                        keep.coef = TRUE)
+## GARCH(1,1) with t distributed errors
+####################################################################################
+sgarch_t_model <- ugarchspec(variance.model=list(model="sGARCH",garchOrder=c(1,1)),
+                             distribution.model="std",
+                             mean.model=list(armaOrder=c(0,0),include.mean=TRUE))
+sgarch_t_fit <- ugarchfit(sgarch_t_model,DFirst)
+mod_t_sgarch <- ugarchroll(sgarch_t_model, data = logFX, n.ahead = 1,refit.every = 1,
+                          n.start = 2865, refit.window = "recursive",
+                          solver = "hybrid", fit.control = list(),
+                          calculate.VaR = TRUE, VaR.alpha = c(0.01, 0.025, 0.05),
+                          keep.coef = TRUE)
+## EGARCH(1,1) with normally distributed errors
+#################################################################################
+egarch_model <- ugarchspec(variance.model=list(model="eGARCH",garchOrder=c(1,1)),
+                           distribution.model="norm",
+                           mean.model=list(armaOrder=c(0,0),include.mean=TRUE))
+egarch_fit <- ugarchfit(egarch_model,DFirst)
+mod_egarch <- ugarchroll(egarch_model, data = logFX, n.ahead = 1,refit.every = 1,
+                        n.start = 2865, refit.window = "recursive",
+                        solver = "hybrid", fit.control = list(),
+                        calculate.VaR = TRUE, VaR.alpha = c(0.01, 0.025, 0.05),
+                        keep.coef = TRUE)
+## Stochastic Volatility Model using Normal and T distribution
+#######################################################################################
+SV <- function(train = DFirst[,2], test = DSecond[,2], primu = c(0,100), priphi = c(5,1.5),
+               prisig = 1 ,prinu = NA, heavytail=FALSE, predict=FALSE){
+  if(heavytail){
+    res <- svsample(train, priormu=primu, priorphi=priphi, priorsigma=prisig, priornu=prinu)
+      }else{
+    res <- svsample(train, priormu=primu, priorphi=priphi, priorsigma=prisig)
+  }
+  if(predict)
+  {
+    coverage <- matrix(nrow=length(train), ncol=3); colnames(coverage) <- c("90%","80%","50%")
+    preinterval <- matrix(nrow=length(train), ncol=7)
+    for(i in 1:{length(train)})
+    {
+      if(i==1)
+      {
+        forecast <- exp(predict(res,1)/2)
+      }else{
+        if(heavytail){
+          res1 <- svsample(c(train, test[1:{i-1}]), priormu = primu, priorphi = priphi,
+                           priorsigma = prisig, priornu = prinu)
+        }else{
+          res1 <- svsample(c(train, test[1:{i-1}]), priormu = primu, priorphi = priphi,
+                           priorsigma = prisig)
+        }
+        forecast <- exp(predict(res1, 1) / 2)
+      }
+      epsilon <- rnorm(length(forecast), mean = 0, sd = 1)
+      at <- forecast * epsilon
+      preinterval[i,] <- quantile(at,c(0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95))
+      coverage[i,] <- c({test[i] >= preinterval[i,1] & test[i] <= preinterval[i,7]},
+                        {test[i] >= preinterval[i,2] & test[i] <= preinterval[i,6]},
+                        {test[i] >= preinterval[i,3] & test[i] <= preinterval[i,5]})
+    }
+    return(list(CovRate=colMeans(coverage), CovMatr=coverage, Predict=preinterval, First=res,
+                Para=list(primu = primu, priphi = priphi, prisig = prisig, prinu = prinu,
+                          heavytail= heavytail, predict= predict), Ptitle=title))
+  }}
+@
+\end{document}
+
+
